@@ -565,8 +565,9 @@ int Edif::Init(mv * mV, bool fusionStartupScreen)
 #if defined(WINVER) && WINVER < _WIN32_WINNT_NT4
 #error RtlGetVersion not available
 #endif
-		OSVERSIONINFOA info = { sizeof(info) };
-		LONG (WINAPI * RtlGetVersionPtr)(OSVERSIONINFOA *) = (decltype(RtlGetVersionPtr))GetProcAddress(hMod, "RtlGetVersion");
+		// RtlGetVersion always returns wide
+		OSVERSIONINFOW info = { sizeof(info) };
+		LONG (WINAPI * RtlGetVersionPtr)(OSVERSIONINFOW *) = (decltype(RtlGetVersionPtr))GetProcAddress(hMod, "RtlGetVersion");
 		if (!RtlGetVersionPtr)
 			return DarkEdif::MsgBox::Error(_T("DarkEdif OS detection error"), _T("Couldn't detect OS version: Couldn't load version function.")), -1;
 
@@ -578,7 +579,7 @@ int Edif::Init(mv * mV, bool fusionStartupScreen)
 		// ReactOS appends extra text after the null terminator, like "Service Pack 6", NULL, "ReactOS 0.2.5-RC1 (Build 20041227)"
 		// Due to zero-init of info var, it's safe to read past the null if not React, should just be blank string
 		if (DarkEdif::Windows::OSVersion >= DarkEdif::Windows::WinOSVersion::WinXP &&
-			SVIComparePrefix(info.szCSDVersion + strlen(info.szCSDVersion), "ReactOS"sv))
+			!_wcsnicmp(info.szCSDVersion + wcslen(info.szCSDVersion), L"ReactOS", sizeof("ReactOS")))
 		{
 			DarkEdif::Windows::IsRunningInReactOS = true;
 		}
