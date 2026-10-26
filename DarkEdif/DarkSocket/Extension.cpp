@@ -58,6 +58,7 @@ Extension::Extension(RunObject* const _rdPtr, const EDITDATA* const edPtr, const
 	LinkAction(37, PacketBeingBuilt_SetString);
 	LinkAction(38, PacketBeingBuilt_SetBuffer);
 	LinkAction(39, PendingData_DiscardBytes);
+	LinkAction(40, ServerSendPeerless); // allows sending UDP through ip/port instead of peer socket id
 
 
 

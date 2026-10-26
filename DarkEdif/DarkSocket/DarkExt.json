@@ -26,6 +26,7 @@
 				[ 13, "Shutdown server socket" ],
 				"---",
 				[ 34, "Send packet to client" ],
+				[ 40, "Send peerless UDP packet to IP:Port" ],
 				[ 35, "Shutdown client socket" ]
 			],
 			[ "Build packet",
@@ -461,6 +462,18 @@
 				"Parameters": [
 					[ "Integer", "Position to discard from (0+)" ],
 					[ "Integer", "Number of bytes to discard (or -1 for all)" ]
+				]
+			},
+			// ID = 40
+			{
+				"Title": "Socket %0, to %1 on port %2: send %3, using text encoding %4 and flags %5",
+				"Parameters": [
+					[ "Integer", "Fusion socket ID:" ],
+					[ "Text", "Hostname" ],
+					[ "Integer", "Port (0-65535)" ],
+					[ "Text", "Text to send to client (or \"\")" ],
+					[ "Text", "Text encoding (\"UTF-8\", \"PACKET\", etc)" ],
+					[ "Integer", "(Advanced) Flags (Use 0, or see help file)" ]
 				]
 			}
 		],

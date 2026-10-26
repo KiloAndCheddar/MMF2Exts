@@ -94,6 +94,8 @@ struct GlobalInfo
 	// Returns pointer or null, reports error if not found
 	std::shared_ptr<Thread> GetSocket(const char * func, SocketType socketType, int socketID);
 	std::shared_ptr<SocketSource> GetSocketSource(const char* func, int socketID, int peerSocketID);
+	//std::shared_ptr<SocketSource> GetSocketSourcePeerless(const char* func, int socketID, const TCHAR * hostnameParam, int port);
+
 	static int AddressFamilyTextToNum(const std::string_view addrFamAsASCIIUpper);
 	static int SocketTypeTextToNum(const std::string_view sockTypeAsASCIIUpper);
 	static int ProtocolTypeTextToNum(const std::string_view protoTypeAsASCIIUpper);

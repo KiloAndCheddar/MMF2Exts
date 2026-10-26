@@ -16,7 +16,7 @@ public:
 	Edif::Runtime Runtime;
 
 	static const int MinimumBuild = 252;
-	static const int Version = 7;
+	static const int Version = 8; // testing udp server changes. :p --bobman99
 
 	static constexpr OEFLAGS OEFLAGS = OEFLAGS::VALUES;
 	static constexpr OEPREFS OEPREFS = OEPREFS::NONE;
@@ -105,6 +105,8 @@ public:
 	void ServerShutdown(int socketID);
 	void ServerShutdownPeerSocket(int socketID, int peerSocketID, int immediate);
 	void ServerSend(int socketID, int peerSocketID, const TCHAR * message, const TCHAR * encoding, int flags);
+	// UDP Only: Similar to ServerSend(), it allows sending UDP only packets through IP:Port instead of a Peer Socket ID.
+	void ServerSendPeerless(int socketID, const TCHAR * hostname, int port, const TCHAR * packet, const TCHAR * encoding, int flags);
 	void ServerAutoAccept(int socketID, int onOrOff);
 
 	void PacketBeingBuilt_NewPacket(int size);

@@ -73,7 +73,7 @@ void Extension::ClientInitialize_Basic(const TCHAR * hostnameParam, int port, co
 	if (protoASCIIUpper == "UDP"sv)
 		threadParams->socketType = SOCK_DGRAM;	// Default for UDP
 	if (protoASCIIUpper == "ICMP"sv)
-		threadParams->socketType = SOCK_RAW;		// Default for ICMP
+		threadParams->socketType = SOCK_RAW;	// Default for ICMP
 
 	globals->ReportInfo(-1, _T("Client regular thread booting with basic parameters..."));
 	std::shared_ptr<Thread> newThread = std::make_shared<Thread>(globals);
@@ -392,6 +392,85 @@ void Extension::ServerSend(int socketID, int peerSocketID, const TCHAR * packet,
 	if (sock->sock->HandleSockOpReturn("sending packet on server socket", ret) && ret < (int)msgTo.size())
 		globals->CreateError(socketID, _T("Only sent %d bytes instead of %zu bytes; sending overloaded?"), ret, msgTo.size());
 }
+void Extension::ServerSendPeerless(int socketID, const TCHAR* hostnameParam, int port, const TCHAR* packet, const TCHAR* encodingParam, int flags)
+{
+	// Hostname
+	std::tstring hostname(hostnameParam);
+	if (hostname.empty())
+		return globals->CreateError(socketID, _T("Hostname must not be blank."));
+
+	// Port
+	if (port < 1 || port > UINT16_MAX)
+		return globals->CreateError(socketID, _T("%s - Server peerless UDP send error: port must be greater than 0 and less than 65535; you passed %d."), _T(__FUNCTION__), port);
+
+	// Packet content & encodingParam
+	const std::string encoding(DarkEdif::TStringToUTF8(encodingParam));
+	std::string msgTo;
+	if (!Internal_SetTextWithEncoding(encoding, packet, msgTo, socketID))
+		return;
+
+#if _WIN32
+	// Only two recognised WinSock flags
+	if (!(flags & MSG_DONTROUTE | MSG_OOB))
+		return globals->CreateError(socketID, _T("Flags %i are not recognised."), flags);
+#endif
+
+	// Grab the Base Socket Thread directly!
+	auto sock = globals->GetSocket("Server send peerless action", SocketType::Server, socketID);
+	if (!sock)
+		return;
+
+	sock->lock.edif_lock();
+
+	if (sock->mainSocketFD == -1)
+	{
+		sock->lock.edif_unlock();
+		return globals->CreateError(socketID, _T("Server socket is not valid or not bound, cannot send."));
+	}
+
+	// 1. Declare a proper IPv4 network address structure
+	struct sockaddr_in targetAddr;
+	memset(&targetAddr, 0, sizeof(targetAddr));
+	targetAddr.sin_family = AF_INET;
+	targetAddr.sin_port = htons(port); // Apply the Fusion integer port cleanly
+
+	// 2. Prepare string data and the exact target structure size
+	std::string targetIP = DarkEdif::TStringToUTF8(hostnameParam);
+	int addressSize = sizeof(targetAddr);
+
+	// 3. Winsock parses the IP string straight into the targetAddr struct
+	int parseResult = WSAStringToAddressA(
+		(LPSTR)targetIP.c_str(),     // The string IP to parse
+		AF_INET,                     // IPv4 address family
+		NULL,                        // No protocol info structure needed
+		(LPSOCKADDR)&targetAddr,     // Write directly into our sockaddr_in structure
+		&addressSize                 // Pass pointer to size variable
+	);
+
+	if (parseResult != 0)
+	{
+		sock->lock.edif_unlock();
+		return globals->CreateError(socketID, _T("Invalid destination IP address format: \"%s\"."), hostnameParam);
+	}
+
+	// 4. FIRE THE PEERLESS DATAGRAM!
+	int ret = sendto(sock->mainSocketFD, msgTo.data(), (int)msgTo.size(), flags, (struct sockaddr*)&targetAddr, sizeof(targetAddr));
+
+	// 5. Safely unlock thread synchronization
+	sock->lock.edif_unlock();
+
+	// 6. Update network statistics if available
+	if (ret > 0 && !sock->sources.empty())
+	{
+		++sock->sources[0]->numPacketsOut;
+		sock->sources[0]->bytesOut += ret;
+	}
+
+	// 7. Check for transmission errors or full buffers
+	if (sock->HandleSockOpReturn("sending peerless packet on server socket", ret) && ret < (int)msgTo.size())
+		globals->CreateError(socketID, _T("Only sent %d bytes of peerless packet instead of %zu bytes."), ret, msgTo.size());
+}
+
 void Extension::REMOVED_ServerGoIndependent(int socketID)
 {
 	globals->CreateError(socketID, _T("Going independent action is no longer available. Remove the action from Fusion event line %d."),
